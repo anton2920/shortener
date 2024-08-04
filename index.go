@@ -40,7 +40,7 @@ func IndexPage(w *http.Response, r *http.Request) error {
 			w.WriteString(`<label>`)
 			w.WriteString(Ls(GL, "URL"))
 			w.WriteString(`: `)
-			DisplayConstraintInput(w, "text", MinURLLen, MaxURLLen, "URL", r.Form.Get("URL")+"awdawdawd", true)
+			DisplayConstraintInput(w, "text", MinURLLen, MaxURLLen, "URL", r.Form.Get("URL"), true)
 			w.WriteString(`</label>`)
 			w.WriteString(`<br><br>`)
 

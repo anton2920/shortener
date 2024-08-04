@@ -5,22 +5,22 @@ import (
 	"encoding/gob"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/anton2920/gofa/database"
 	"github.com/anton2920/gofa/errors"
 	"github.com/anton2920/gofa/net/http"
 	"github.com/anton2920/gofa/prof"
 	"github.com/anton2920/gofa/syscall"
+	"github.com/anton2920/gofa/time"
 )
 
 type Session struct {
 	GobMutex
 	ID     database.ID
-	Expiry time.Time
+	Expiry int
 }
 
-const OneWeek = time.Hour * 24 * 7
+const OneWeek = 60 * 60 * 24 * 7
 
 const SessionsFile = "sessions.gob"
 
@@ -42,15 +42,15 @@ func GetSessionFromToken(token string) (*Session, error) {
 	session.Lock()
 	defer session.Unlock()
 
-	now := time.Now()
-	if session.Expiry.Before(now) {
+	now := time.Unix()
+	if now > session.Expiry {
 		SessionsLock.Lock()
 		delete(Sessions, token)
 		SessionsLock.Unlock()
 		return nil, errors.New("session for this token has expired")
 	}
 
-	session.Expiry = now.Add(OneWeek)
+	session.Expiry = now + OneWeek
 	return session, nil
 }
 

@@ -25,6 +25,12 @@ func DisplayBodyStart(w *http.Response) {
 	w.WriteString(`<body>`)
 }
 
+func DisplayLabel(w *http.Response, l Language, label string) {
+	w.WriteString(`<label>`)
+	w.WriteString(label)
+	w.WriteString(`:<br></label>`)
+}
+
 func DisplayConstraintInput(w *http.Response, t string, minLength int, maxLength int, name string, value string, required bool) {
 	w.WriteString(`<input type="`)
 	w.WriteString(t)

@@ -40,12 +40,29 @@ func HandlePageRequest(w *http.Response, r *http.Request, path string) error {
 	switch {
 	case path == "/":
 		return IndexPage(w, r)
+	case strings.StartsWith(path, "/user"):
+		switch path[len("/user"):] {
+		case "/signin":
+			return UserSigninPage(w, r, nil)
+		case "/signup":
+			return UserSignupPage(w, r, nil)
+		}
 	}
 
 	return http.NotFound(Ls(GL, "requested page does not exist"))
 }
 
 func HandleAPIRequest(w *http.Response, r *http.Request, path string) error {
+	switch {
+	case strings.StartsWith(path, "/user"):
+		switch path[len("/user"):] {
+		case "/signin":
+			return UserSigninHandler(w, r)
+		case "/signup":
+			return UserSignupHandler(w, r)
+		}
+	}
+
 	return http.NotFound(Ls(GL, "requested API endpoint does not exist"))
 }
 
