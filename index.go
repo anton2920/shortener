@@ -15,6 +15,8 @@ func IndexPage(w *http.Response, r *http.Request) error {
 
 	const title = "URL shortener"
 
+	session, _ := GetSessionFromRequest(r)
+
 	if err := r.ParseForm(); err != nil {
 		return http.ClientError(err)
 	}
@@ -31,9 +33,35 @@ func IndexPage(w *http.Response, r *http.Request) error {
 
 	DisplayBodyStart(w)
 	{
-		w.WriteString(`<h1>`)
+		w.WriteString(`<h2>`)
 		w.WriteString(Ls(GL, title))
-		w.WriteString(`</h1>`)
+		w.WriteString(`</h2>`)
+
+		if session == nil {
+			w.WriteString(`<a href="/user/signin">`)
+			w.WriteString(Ls(GL, "Sign in"))
+			w.WriteString(`</a>`)
+
+			w.WriteString(` <a href="/user/signup">`)
+			w.WriteString(Ls(GL, "Sign up"))
+			w.WriteString(`</a>`)
+		} else {
+			var user User
+			if err := GetUserByID(session.ID, &user); err != nil {
+				return http.ServerError(err)
+			}
+
+			w.WriteString(`<a href="/user/`)
+			w.WriteID(session.ID)
+			w.WriteString(`">`)
+			DisplayUserTitle(w, &user)
+			w.WriteString(`</a>`)
+
+			w.WriteString(` <a href="/api/user/signout">`)
+			w.WriteString(Ls(GL, "Sign out"))
+			w.WriteString(`</a>`)
+		}
+		w.WriteString(`<br><br>`)
 
 		w.WriteString(`<form method="POST" action="/">`)
 		{

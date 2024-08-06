@@ -57,22 +57,96 @@ func UserNameValid(l Language, name string) error {
 	return nil
 }
 
-func GetUserByEmail(email string, user *User) error {
-	const correctEmail = "test@test.com"
+var TestUser = User{
+	ID:        1,
+	FirstName: "First",
+	LastName:  "Last",
+	Email:     "test@test.com",
+	Password:  "testtest",
+	CreatedOn: int64(time.Unix()),
+}
 
-	if email != correctEmail {
+func GetUserByEmail(email string, user *User) error {
+	if email != TestUser.Email {
 		return database.NotFound
 	}
 
-	user.FirstName = "Test"
-	user.LastName = "Test"
-	user.Email = correctEmail
-	user.Password = "testtest"
-	user.CreatedOn = int64(time.Unix())
+	*user = TestUser
+	return nil
+}
+
+func GetUserByID(id database.ID, user *User) error {
+	if id != TestUser.ID {
+		return database.NotFound
+	}
+
+	*user = TestUser
 	return nil
 }
 
 func CreateUser(user *User) error {
+	return nil
+}
+
+func DisplayUserTitle(w *http.Response, user *User) {
+	w.WriteHTMLString(user.LastName)
+	w.WriteString(` `)
+	w.WriteHTMLString(user.FirstName)
+	w.WriteString(` (ID: `)
+	w.WriteID(user.ID)
+	w.WriteString(`)`)
+}
+
+func UserPage(w *http.Response, r *http.Request) error {
+	var user User
+
+	id, err := GetIDFromURL(GL, r.URL, "/user/")
+	if err != nil {
+		return err
+	}
+
+	if err := GetUserByID(id, &user); err != nil {
+		if err == database.NotFound {
+			return http.NotFound(Ls(GL, "user with this ID does not exist"))
+		}
+		return http.ServerError(err)
+	}
+
+	DisplayHTMLStart(w)
+
+	DisplayHeadStart(w)
+	{
+		w.WriteString(`<title>`)
+		DisplayUserTitle(w, &user)
+		w.WriteString(`</title>`)
+	}
+	DisplayHeadEnd(w)
+
+	DisplayBodyStart(w)
+	{
+		w.WriteString(`<h2>`)
+		DisplayUserTitle(w, &user)
+		w.WriteString(`</h2>`)
+
+		w.WriteString(`<p>`)
+		w.WriteString(Ls(GL, "Email"))
+		w.WriteString(`: `)
+		w.WriteString(user.Email)
+		w.WriteString(`</p>`)
+
+		w.WriteString(`<p>`)
+		w.WriteString(Ls(GL, "Created on"))
+		w.WriteString(`: `)
+		DisplayFormattedTime(w, user.CreatedOn)
+		w.WriteString(`</p>`)
+
+		w.WriteString(`<h3>`)
+		w.WriteString(Ls(GL, "Shortened links"))
+		w.WriteString(`</h3>`)
+	}
+	DisplayBodyEnd(w)
+
+	DisplayHTMLEnd(w)
 	return nil
 }
 
@@ -228,6 +302,27 @@ func UserSigninHandler(w *http.Response, r *http.Request) error {
 	} else {
 		w.SetCookie("Token", token, expiry)
 	}
+	w.Redirect("/", http.StatusSeeOther)
+	return nil
+}
+
+func UserSignoutHandler(w *http.Response, r *http.Request) error {
+	defer prof.End(prof.Begin(""))
+
+	token := r.Cookie("Token")
+	if token == "" {
+		return http.UnauthorizedError
+	}
+
+	if _, err := GetSessionFromToken(token); err != nil {
+		return http.UnauthorizedError
+	}
+
+	SessionsLock.Lock()
+	delete(Sessions, token)
+	SessionsLock.Unlock()
+
+	w.DelCookie("Token")
 	w.Redirect("/", http.StatusSeeOther)
 	return nil
 }

@@ -42,6 +42,8 @@ func HandlePageRequest(w *http.Response, r *http.Request, path string) error {
 		return IndexPage(w, r)
 	case strings.StartsWith(path, "/user"):
 		switch path[len("/user"):] {
+		default:
+			return UserPage(w, r)
 		case "/signin":
 			return UserSigninPage(w, r, nil)
 		case "/signup":
@@ -58,6 +60,8 @@ func HandleAPIRequest(w *http.Response, r *http.Request, path string) error {
 		switch path[len("/user"):] {
 		case "/signin":
 			return UserSigninHandler(w, r)
+		case "/signout":
+			return UserSignoutHandler(w, r)
 		case "/signup":
 			return UserSignupHandler(w, r)
 		}
