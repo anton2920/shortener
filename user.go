@@ -7,9 +7,9 @@ import (
 
 	"github.com/anton2920/gofa/database"
 	"github.com/anton2920/gofa/net/http"
-	"github.com/anton2920/gofa/prof"
 	"github.com/anton2920/gofa/strings"
 	"github.com/anton2920/gofa/time"
+	"github.com/anton2920/gofa/trace"
 )
 
 type User struct {
@@ -21,6 +21,8 @@ type User struct {
 	Email     string
 	Password  string
 	CreatedOn int64
+
+	URLs []database.ID
 }
 
 const (
@@ -35,7 +37,7 @@ const (
 )
 
 func UserNameValid(l Language, name string) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	if !strings.LengthInRange(name, MinUserNameLen, MaxUserNameLen) {
 		return http.BadRequest(Ls(l, "length of the name must be between %d and %d characters"), MinUserNameLen, MaxUserNameLen)
@@ -88,6 +90,10 @@ func CreateUser(user *User) error {
 	return nil
 }
 
+func SaveUser(user *User) error {
+	return nil
+}
+
 func DisplayUserTitle(w *http.Response, user *User) {
 	w.WriteHTMLString(user.LastName)
 	w.WriteString(` `)
@@ -98,6 +104,8 @@ func DisplayUserTitle(w *http.Response, user *User) {
 }
 
 func UserPage(w *http.Response, r *http.Request) error {
+	defer trace.End(trace.Begin(""))
+
 	var user User
 
 	id, err := GetIDFromURL(GL, r.URL, "/user/")
@@ -151,7 +159,7 @@ func UserPage(w *http.Response, r *http.Request) error {
 }
 
 func UserSigninPage(w *http.Response, r *http.Request, ierr error) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	DisplayHTMLStart(w)
 
@@ -177,7 +185,7 @@ func UserSigninPage(w *http.Response, r *http.Request, ierr error) error {
 
 		DisplayError(w, GL, ierr)
 
-		w.WriteString(`<form method="POST" action="/api/user/signin">`)
+		w.WriteString(`<form method="POST" action="` + APIPrefix + `/user/signin">`)
 		{
 			DisplayLabel(w, GL, "Email")
 			DisplayConstraintInput(w, "email", MinEmailLen, MaxEmailLen, "Email", r.Form.Get("Email"), true)
@@ -198,7 +206,7 @@ func UserSigninPage(w *http.Response, r *http.Request, ierr error) error {
 }
 
 func UserSignupPage(w *http.Response, r *http.Request, ierr error) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	DisplayHTMLStart(w)
 
@@ -224,7 +232,7 @@ func UserSignupPage(w *http.Response, r *http.Request, ierr error) error {
 
 		DisplayError(w, GL, ierr)
 
-		w.WriteString(`<form method="POST" action="/api/user/signup">`)
+		w.WriteString(`<form method="POST" action="` + APIPrefix + `/user/signup">`)
 		{
 			DisplayLabel(w, GL, "First Name")
 			DisplayConstraintInput(w, "text", MinUserNameLen, MaxUserNameLen, "FirstName", r.Form.Get("FirstName"), true)
@@ -257,7 +265,7 @@ func UserSignupPage(w *http.Response, r *http.Request, ierr error) error {
 }
 
 func UserSigninHandler(w *http.Response, r *http.Request) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	if err := r.ParseForm(); err != nil {
 		return http.ClientError(err)
@@ -307,7 +315,7 @@ func UserSigninHandler(w *http.Response, r *http.Request) error {
 }
 
 func UserSignoutHandler(w *http.Response, r *http.Request) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	token := r.Cookie("Token")
 	if token == "" {
@@ -328,7 +336,7 @@ func UserSignoutHandler(w *http.Response, r *http.Request) error {
 }
 
 func UserSignupHandler(w *http.Response, r *http.Request) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	if err := r.ParseForm(); err != nil {
 		return http.ClientError(err)

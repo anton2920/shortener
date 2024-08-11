@@ -9,7 +9,7 @@ import (
 	"github.com/anton2920/gofa/database"
 	"github.com/anton2920/gofa/errors"
 	"github.com/anton2920/gofa/net/http"
-	"github.com/anton2920/gofa/prof"
+	"github.com/anton2920/gofa/trace"
 	"github.com/anton2920/gofa/syscall"
 	"github.com/anton2920/gofa/time"
 )
@@ -30,7 +30,7 @@ var (
 )
 
 func GetSessionFromToken(token string) (*Session, error) {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	SessionsLock.RLock()
 	session, ok := Sessions[token]
@@ -55,13 +55,13 @@ func GetSessionFromToken(token string) (*Session, error) {
 }
 
 func GetSessionFromRequest(r *http.Request) (*Session, error) {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	return GetSessionFromToken(r.Cookie("Token"))
 }
 
 func GenerateSessionToken() (string, error) {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	const n = 64
 	buffer := make([]byte, n)
@@ -79,7 +79,7 @@ func GenerateSessionToken() (string, error) {
 }
 
 func StoreSessionsToFile(filename string) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	f, err := os.Create(filename)
 	if err != nil {
@@ -99,7 +99,7 @@ func StoreSessionsToFile(filename string) error {
 }
 
 func RestoreSessionsFromFile(filename string) error {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	f, err := os.Open(filename)
 	if err != nil {

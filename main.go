@@ -16,10 +16,10 @@ import (
 	"github.com/anton2920/gofa/net/http"
 	"github.com/anton2920/gofa/net/http/http1"
 	"github.com/anton2920/gofa/net/tcp"
-	"github.com/anton2920/gofa/prof"
 	"github.com/anton2920/gofa/strings"
 	"github.com/anton2920/gofa/syscall"
 	"github.com/anton2920/gofa/time"
+	"github.com/anton2920/gofa/trace"
 )
 
 const (
@@ -38,8 +38,10 @@ var DateBufferPtr unsafe.Pointer
 
 func HandlePageRequest(w *http.Response, r *http.Request, path string) error {
 	switch {
+	default:
+		return URLRedirectHandler(w, r, path[1:])
 	case path == "/":
-		return IndexPage(w, r)
+		return IndexPage(w, r, "", nil)
 	case strings.StartsWith(path, "/user"):
 		switch path[len("/user"):] {
 		default:
@@ -56,6 +58,11 @@ func HandlePageRequest(w *http.Response, r *http.Request, path string) error {
 
 func HandleAPIRequest(w *http.Response, r *http.Request, path string) error {
 	switch {
+	case strings.StartsWith(path, "/url"):
+		switch path[len("/url"):] {
+		case "/create":
+			return URLCreateHandler(w, r)
+		}
 	case strings.StartsWith(path, "/user"):
 		switch path[len("/user"):] {
 		case "/signin":
@@ -76,7 +83,7 @@ func HandleFSRequest(w *http.Response, r *http.Request, path string) error {
 }
 
 func RouterFunc(w *http.Response, r *http.Request) (err error) {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	defer func() {
 		if p := recover(); p != nil {
@@ -101,7 +108,7 @@ func RouterFunc(w *http.Response, r *http.Request) (err error) {
 }
 
 func Router(ctx *http.Context, ws []http.Response, rs []http.Request) {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	for i := 0; i < len(rs); i++ {
 		w := &ws[i]
@@ -139,7 +146,7 @@ func Router(ctx *http.Context, ws []http.Response, rs []http.Request) {
 }
 
 func GetDateHeader() []byte {
-	defer prof.End(prof.Begin(""))
+	defer trace.End(trace.Begin(""))
 
 	return unsafe.Slice((*byte)(atomic.LoadPointer(&DateBufferPtr)), time.RFC822Len)
 }
@@ -158,7 +165,7 @@ func ServerWorker(q *event.Queue) {
 	rs := make([]http.Request, batchSize)
 
 	getEvents := func(q *event.Queue, events []event.Event) (int, error) {
-		defer prof.End(prof.Begin("github.com/anton2920/gofa/event.(*Queue).GetEvents"))
+		defer trace.End(trace.Begin("github.com/anton2920/gofa/event.(*Queue).GetEvents"))
 		return q.GetEvents(events)
 	}
 
@@ -246,11 +253,11 @@ func main() {
 
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
-	case "gofa/prof":
+	case "Tracing":
 		nworkers = 1
 
-		prof.BeginProfile()
-		defer prof.EndAndPrintProfile()
+		trace.BeginProfile()
+		defer trace.EndAndPrintProfile()
 	}
 	log.Infof("Starting Shortener in %q mode...", BuildMode)
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/anton2920/gofa/net/http"
-	"github.com/anton2920/gofa/prof"
+	"github.com/anton2920/gofa/trace"
 )
 
 const (
@@ -10,8 +10,8 @@ const (
 	MaxURLLen = 128
 )
 
-func IndexPage(w *http.Response, r *http.Request) error {
-	defer prof.End(prof.Begin(""))
+func IndexPage(w *http.Response, r *http.Request, shortened string, ierr error) error {
+	defer trace.End(trace.Begin(""))
 
 	const title = "URL shortener"
 
@@ -57,13 +57,28 @@ func IndexPage(w *http.Response, r *http.Request) error {
 			DisplayUserTitle(w, &user)
 			w.WriteString(`</a>`)
 
-			w.WriteString(` <a href="/api/user/signout">`)
+			w.WriteString(` <a href="` + APIPrefix + `/user/signout">`)
 			w.WriteString(Ls(GL, "Sign out"))
 			w.WriteString(`</a>`)
 		}
 		w.WriteString(`<br><br>`)
 
-		w.WriteString(`<form method="POST" action="/">`)
+		DisplayError(w, GL, ierr)
+
+		if len(shortened) > 0 {
+			w.WriteString(`<label>`)
+			w.WriteString(Ls(GL, "Shortened URL"))
+			w.WriteString(`: `)
+			w.WriteString(`<a href="/`)
+			w.WriteString(shortened)
+			w.WriteString(`">`)
+			w.WriteString(shortened)
+			w.WriteString(`</a>`)
+			w.WriteString(`</label>`)
+			w.WriteString(`<br><br>`)
+		}
+
+		w.WriteString(`<form method="POST" action="` + APIPrefix + `/url/create">`)
 		{
 			w.WriteString(`<label>`)
 			w.WriteString(Ls(GL, "URL"))
