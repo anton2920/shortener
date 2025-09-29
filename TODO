@@ -1,0 +1,34 @@
+== URL shortener (transformer) ==
+
+Example: https://google.com -> https://s.anton2920.ru/ahdfknawbdkawbrkawb.
+
+xxx-xxxx-xxx
+
+Requirements:
+
+- Shortening:
+	- No transforming of transformed.
+	- URL format verification.
+	- Secure.
+
+- Users:
+	- 'Annonymous' user exists.
+		- Unique link leads to unique short.
+	- Shortening:
+		- Allow custom links.
+		- Allow private links.
+	- Stats:
+		- Redirects per period.
+		- From where?
+	- TTL (optional).
+
+Descisions:
+
+- No users or Users or [Both].
+- Endless or Expiry or [Both].
+- Automatic or [Both (Auto + Manual)].
+- Store near or far.
+
+TODO:
+
+- Implement real CreateUser/GetUser.
