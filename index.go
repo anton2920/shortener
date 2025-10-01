@@ -14,8 +14,15 @@ func IndexPage(h *html.HTML) error {
 
 	h.BodyBegin()
 	{
-		h.H1("Hello, world!")
+		h.H2("World fastest shortener!")
 
+		if h.ID == 0 {
+			h.A("/user/signup", "Sign up")
+			h.A("/user/signin", "Sign in")
+		} else {
+			h.A(h.PathWithID("/user/", h.ID), "Profile")
+			h.A("/user/signout", "Sign out")
+		}
 	}
 	h.BodyEnd()
 
