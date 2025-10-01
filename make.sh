@@ -22,20 +22,20 @@ printv()
 }
 
 # Enable Go 1.4
-. go14-env
+# . go14-env
 
 # NOTE(anton2920): disable Go 1.11+ package management.
 GO111MODULE=off; export GO111MODULE
 GOPATH=`go env GOPATH`; export GOPATH
 
-CGO_ENABLED=0; export CGO_ENABLED
+CGO_ENABLED=1; export CGO_ENABLED
 
 STARTTIME=`date +%s`
 
 case $1 in
 	'' | debug)
 		CGO_ENABLED=1; export CGO_ENABLED
-		run go build -o $PROJECT -race -gcflags='-N -l' -tags gofadebug
+		run go build -o $PROJECT -gcflags='-N -l' -tags gofadebug
 		;;
 	clean)
 		run rm -f $PROJECT $PROJECT.s $PROJECT.esc $PROJECT.test c.out cpu.pprof cpu.png mem.pprof mem.png
