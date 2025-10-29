@@ -2,48 +2,65 @@ package main
 
 import (
 	"github.com/anton2920/gofa/database"
+	"github.com/anton2920/gofa/database/kv"
+	"github.com/anton2920/gofa/encoding/wire"
 	"github.com/anton2920/gofa/l10n"
 	"github.com/anton2920/gofa/net/html"
 	"github.com/anton2920/gofa/net/http"
 	"github.com/anton2920/gofa/net/url"
-	"github.com/anton2920/gofa/time"
 	"github.com/anton2920/gofa/trace"
 )
 
-//gpp:generate encoding(wire)
+//gpp:generate encoding(wire), database(kv)
 type User struct {
 	database.RecordHeader
 
-	Email          string
-	Password       string
-	RepeatPassword string
+	Email    string
+	Password string
 
 	CreatedAt int64
 }
 
-func (db *Database) CreateUser(user *User) error {
-	user.CreatedAt = time.Now()
+/* TODO(anton2920): generate via gpp. */
+func PutUserWire(s *wire.Serializer, user *User) {
+	/* TODO(anton2920): implement. */
+}
 
-	if _, err := DB.Exec(`INSERT INTO users(email, password, created_at) VALUES(?, ?, ?)`, user.Email, user.Password, user.CreatedAt); err != nil {
-		if UniqueViolation(err) {
-			return http.Conflict("user with this email already exists")
-		}
-		return http.ServerError(err)
+/* TODO(anton2920): generate via gpp. */
+func CreateUser(tx *kv.Tx, user *User) error {
+	var s wire.Serializer
+	s.Buffer = make([]byte, 0, 1024)
+	PutUserWire(&s, user)
+
+	id, err := tx.Add(s.Buffer)
+	if err != nil {
+		return err
 	}
+	user.ID = id
 
 	return nil
 }
 
-func FillUserFromValues(vs url.Values, user *User) {
-	user.Email = vs.Get("Email")
-	user.Password = vs.Get("Password")
-	user.RepeatPassword = vs.Get("RepeatPassword")
+/* TODO(anton2920): generate via gpp. */
+func GetUserByEmail(tx *kv.Tx, email string, user *User) error {
+	/* Query email index for user. */
+	/*
+
+	 */
+	return nil
 }
 
-func VerifyUser(l l10n.Language, user *User) error {
+/* TODO(anton2920): generate via gpp. */
+func FillUserFromRequest(vs url.Values, user *User) {
+	user.Email = vs.Get("Email")
+	user.Password = vs.Get("Password")
+}
+
+/* TODO(anton2920): generate via gpp. */
+func VerifyUser(l l10n.Language, user *User, repeatPassword string) error {
 	/* TODO(anton2920): verify email. */
 
-	if user.Password != user.RepeatPassword {
+	if user.Password != repeatPassword {
 		return http.BadRequest(l.L("passwords do not match"))
 	}
 
@@ -84,16 +101,20 @@ func UserSigninPage(h *html.HTML, user *User, ierr error) error {
 	return nil
 }
 
-func UserSignin(h *html.HTML, r *http.Request, db *Database) error {
+func UserSigninHandler(w *http.Response, r *http.Request) error {
 	var user User
+
+	h := html.New(w, r, Styles)
 
 	switch r.Method {
 	default:
-		return UserSigninPage(h, &user, nil)
+		return UserSigninPage(&h, &user, nil)
 	}
 }
 
-func UserSignout() {}
+func UserSignoutHandler(w *http.Response, r *http.Request) error {
+	return nil
+}
 
 func UserSignupPage(h *html.HTML, user *User, ierr error) error {
 	defer trace.End(trace.Begin(""))
@@ -134,25 +155,34 @@ func UserSignupPage(h *html.HTML, user *User, ierr error) error {
 	return nil
 }
 
-func UserSignup(h *html.HTML, r *http.Request, db *Database) error {
-	defer trace.End(trace.Begin(""))
-
+func UserSignupHandler(w *http.Response, r *http.Request, db *kv.Database) error {
 	var user User
+
+	tx, err := db.Begin(r.Language)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	h := html.New(w, r, Styles)
 
 	switch r.Method {
 	default:
-		return UserSignupPage(h, &user, nil)
+		return UserSignupPage(&h, &user, nil)
 	case http.MethodPost:
-		FillUserFromValues(r.Form, &user)
-		if err := VerifyUser(h.Language, &user); err != nil {
-			return UserSignupPage(h, &user, err)
+		FillUserFromRequest(r.Form, &user)
+		if err := VerifyUser(r.Language, &user, r.Form.Get("RepeatPassword")); err != nil {
+			return UserSignupPage(&h, &user, err)
 		}
 
-		if err := db.CreateUser(&user); err != nil {
-			return UserSignupPage(h, &user, err)
+		if err := GetUserByEmail(tx, user.Email, nil); err != nil {
+			return UserSignupPage(&h, &user, http.Conflict("%s", r.L("user with this email already exists")))
+		}
+		if err := CreateUser(tx, &user); err != nil {
+			return UserSignupPage(&h, &user, err)
 		}
 
-		h.Redirect("/user/signin", http.StatusSeeOther)
+		w.Redirect("/user/signin", http.StatusSeeOther)
 		return nil
 	}
 }

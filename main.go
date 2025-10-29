@@ -9,51 +9,46 @@ import (
 	"github.com/anton2920/gofa/log"
 	"github.com/anton2920/gofa/net/html"
 	"github.com/anton2920/gofa/net/http"
-	"github.com/anton2920/gofa/session"
-	"github.com/anton2920/gofa/strings"
 	"github.com/anton2920/gofa/syscall"
 	"github.com/anton2920/gofa/trace"
 )
 
-func Router(w *http.Response, r *http.Request, s session.Session) error {
+func Router(w *http.Response, r *http.Request) error {
 	defer trace.End(trace.Begin(""))
 
-	h := html.New(w, nil, s, Styles)
-	db := Database{Language: s.Language}
-
-	if err := func(h *html.HTML, r *http.Request, db *Database) error {
+	if err := func(w *http.Response, r *http.Request) error {
 		defer trace.End(trace.Begin(""))
 
 		if r.Error != nil {
 			return r.Error
 		}
 
-		path := r.URL.Path
-		switch path {
-		default:
+		path := Path(r.URL.Path)
+		switch {
+		case path.Match("/"):
+			return IndexHandler(w, r)
+		case path.Match("/user..."):
 			switch {
-			default:
-				switch path {
-				case "/":
-					return IndexPage(h)
-				}
-			case strings.StartsWith(path, "/user"):
-				switch path[len("/user"):] {
-				case "/signin":
-					return UserSignin(h, r, db)
-				case "/signout":
-				case "/signup":
-					return UserSignup(h, r, db)
+			case path.Match("/signin"):
+				return UserSigninHandler(w, r)
+			case path.Match("/signout"):
+			case path.Match("/signup"):
+				return UserSignupHandler(w, r, DB)
+			}
+		default:
+			if debug.Debug {
+				switch {
+				case path.Match("/error"):
+					return http.ServerError(errors.New(r.L("test error")))
+				case path.Match("/panic"):
+					panic("test panic")
 				}
 			}
-		case "/error":
-			return http.ServerError(errors.New("test error"))
-		case "/panic":
-			panic("test panic")
 		}
 
 		return http.NotFound("requested item does not exist")
-	}(&h, r, &db); err != nil {
+	}(w, r); err != nil {
+		h := html.New(w, r, Styles)
 		return ErrorPage(&h, err)
 	}
 
@@ -69,10 +64,6 @@ func main1() {
 
 	trace.BeginProfile()
 	defer trace.EndAndPrintProfile()
-
-	if err := OpenDB("db.sqlite"); err != nil {
-		log.Fatalf("Failed to open DB: %v", err)
-	}
 
 	l, err := http.Listen(addr)
 	if err != nil {

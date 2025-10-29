@@ -1,6 +1,9 @@
 package main
 
-import "github.com/anton2920/gofa/net/html"
+import (
+	"github.com/anton2920/gofa/net/html"
+	"github.com/anton2920/gofa/net/http"
+)
 
 func IndexPage(h *html.HTML) error {
 	h.Begin()
@@ -20,7 +23,7 @@ func IndexPage(h *html.HTML) error {
 			h.A("/user/signup", "Sign up")
 			h.A("/user/signin", "Sign in")
 		} else {
-			h.A(h.PathWithID("/user/", h.ID), "Profile")
+			h.A(h.PathID("/user/", h.ID), "Profile")
 			h.A("/user/signout", "Sign out")
 		}
 	}
@@ -28,4 +31,13 @@ func IndexPage(h *html.HTML) error {
 
 	h.End()
 	return nil
+}
+
+func IndexHandler(w *http.Response, r *http.Request) error {
+	h := html.New(w, r, Styles)
+
+	switch r.Method {
+	default:
+		return IndexPage(&h)
+	}
 }
