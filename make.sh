@@ -35,7 +35,7 @@ STARTTIME=`date +%s`
 case $1 in
 	'' | debug)
 		CGO_ENABLED=1; export CGO_ENABLED
-		run go build -o $PROJECT -gcflags='-N -l' -tags gofadebug
+		run go build -o $PROJECT -gcflags='all=-N -l' -tags gofadebug
 		;;
 	clean)
 		run rm -f $PROJECT $PROJECT.s $PROJECT.esc $PROJECT.test c.out cpu.pprof cpu.png mem.pprof mem.png

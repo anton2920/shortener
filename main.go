@@ -61,7 +61,6 @@ func main1() {
 	if debug.Debug {
 		log.SetLevel(log.LevelDebug)
 	}
-
 	trace.BeginProfile()
 	defer trace.EndAndPrintProfile()
 
@@ -75,6 +74,12 @@ func main1() {
 	if err != nil {
 		log.Fatalf("Failed to create new event queue: %v", err)
 	}
+
+	ws, err := http.NewWorkers(Router, runtime.GOMAXPROCS(0))
+	if err != nil {
+		log.Fatalf("Failed to create HTTP workers: %v", err)
+	}
+	_ = ws
 
 	_ = syscall.IgnoreSignals(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
@@ -101,7 +106,8 @@ func main1() {
 					log.Errorf("Failed to accept new HTTP connection: %v", err)
 					continue
 				}
-				go http.ConnectionHandler(c, Router)
+				//go http.Serve(c, Router)
+				ws.Add(c)
 			case event.TypeSignal:
 				sig := syscall.Signal(e.Identifier)
 				log.Infof("Received %d (%s), exitting...", sig, sig)
