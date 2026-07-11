@@ -104,7 +104,7 @@ func UserSigninPage(h *html.HTML, user *User, ierr error) error {
 func UserSigninHandler(w *http.Response, r *http.Request) error {
 	var user User
 
-	h := html.New(w, r, Styles)
+	h := html.New(w, r, &Styles)
 
 	switch r.Method {
 	default:
@@ -164,7 +164,7 @@ func UserSignupHandler(w *http.Response, r *http.Request, db *kv.Database) error
 	}
 	defer tx.Rollback()
 
-	h := html.New(w, r, Styles)
+	h := html.New(w, r, &Styles)
 
 	switch r.Method {
 	default:

@@ -11,6 +11,7 @@ import (
 	"github.com/anton2920/gofa/net/http"
 	"github.com/anton2920/gofa/syscall"
 	"github.com/anton2920/gofa/trace"
+	"github.com/anton2920/gofa/trace_"
 )
 
 func Router(w *http.Response, r *http.Request) error {
@@ -48,34 +49,47 @@ func Router(w *http.Response, r *http.Request) error {
 
 		return http.NotFound("requested item does not exist")
 	}(w, r); err != nil {
-		h := html.New(w, r, Styles)
+		h := html.New(w, r, &Styles)
 		return ErrorPage(&h, err)
 	}
 
 	return nil
 }
 
-func main1() {
+func main() {
+	//runtime.AllocationsAreDisabled = true
+
 	const addr = "0.0.0.0:7075"
+
+	//var f log.Formatter
+	//f.InitWithByteSlice(make([]byte, 1024))
 
 	if debug.Debug {
 		log.SetLevel(log.LevelDebug)
 	}
 	trace.BeginProfile()
-	defer trace.EndAndPrintProfile()
+	defer trace_.EndAndPrintProfile()
 
-	l, err := http.Listen(addr)
+	//runtime.AllocationsAreDisabled = false
+	// l, err := http_.Listen(addr, http.ListenerOptions{Backlog: 128})
+	l, err := http.Listen(addr, http.ListenerOptions{Backlog: 128})
+	//runtime.AllocationsAreDisabled = true
 	if err != nil {
 		log.Fatalf("Failed to listen for HTTP connections: %v", err)
 	}
-	log.Infof("Listening on %s... (%s, GOMAXPROCS=%d)", addr, runtime.Version(), runtime.GOMAXPROCS(0))
+	print("INFO ", "Listening on ", addr, "... (", runtime.Version(), ", GOMAXPROCS=", runtime.GOMAXPROCS(0), ")\n")
+	//os.WriteToFile(os.StandardOutputStream, f.Level(level).S("Listening on ").S(addr).S("... (").S(runtime.Version()).S(", GOMAXPROCS=").D(runtime.GOMAXPROCS(0)).S(")").Ln().Bytes())
 
+	// q, err := os.CreateEventQueue() -> kqueue, epoll_create, whatever...
 	q, err := event.NewQueue()
 	if err != nil {
 		log.Fatalf("Failed to create new event queue: %v", err)
 	}
+	_ = q
 
-	ws, err := http.NewWorkers(Router, runtime.GOMAXPROCS(0))
+	//runtime.AllocationsAreDisabled = false
+	ws, err := http.NewWorkers(Router, 1) // runtime.GOMAXPROCS(0))
+	//runtime.AllocationsAreDisabled = true
 	if err != nil {
 		log.Fatalf("Failed to create HTTP workers: %v", err)
 	}
@@ -101,7 +115,9 @@ func main1() {
 
 			switch e.Type {
 			case event.TypeRead:
+				//runtime.AllocationsAreDisabled = false
 				c, err := l.Accept()
+				//runtime.AllocationsAreDisabled = true
 				if err != nil {
 					log.Errorf("Failed to accept new HTTP connection: %v", err)
 					continue
@@ -119,8 +135,4 @@ func main1() {
 	if err := l.Close(); err != nil {
 		log.Warnf("Failed to close HTTP listener: %v", err)
 	}
-}
-
-func main() {
-	main1()
 }

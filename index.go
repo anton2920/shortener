@@ -34,7 +34,7 @@ func IndexPage(h *html.HTML) error {
 }
 
 func IndexHandler(w *http.Response, r *http.Request) error {
-	h := html.New(w, r, Styles)
+	h := html.New(w, r, &Styles)
 
 	switch r.Method {
 	default:
